@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
+enum AnimationCycle { stopped, active }
 
 // https://flutter.dev/docs/cookbook/networking/fetch-data
 Future<Compliment> fetchCompliment() async {
@@ -57,16 +60,19 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   Future<Compliment> futureCompliment;
   AnimationController _controller;
+  Animation animation;
+  AnimationCycle currentState = AnimationCycle.stopped;
 
   @override
   void initState() {
     super.initState();
     futureCompliment = fetchCompliment();
-    _controller = AnimationController(
-        duration: Duration(seconds: 1),
-        vsync: this,
-        lowerBound: 0.0,
-        upperBound: 1.0);
+    _controller =
+        AnimationController(duration: Duration(milliseconds: 500), vsync: this);
+    animation = Tween(begin: 0, end: 60).animate(_controller)
+      ..addListener(() {
+        setState(() {});
+      });
   }
 
   @override
@@ -77,11 +83,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
   void refreshCompliment() {
     setState(() {
-      // TODO: Fix Animation
-      _controller
-          .repeat(period: Duration(seconds: 1))
-          .then((_) => _controller.reset());
       futureCompliment = fetchCompliment();
+      currentState = AnimationCycle.stopped;
     });
   }
 
@@ -117,7 +120,10 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
             splashColor: Colors.pink,
             backgroundColor: Colors.red,
             foregroundColor: Colors.white,
-            onPressed: refreshCompliment,
+            onPressed: () {
+              currentState = AnimationCycle.active;
+              refreshCompliment();
+            },
             child: RotationTransition(
               child: Icon(Icons.refresh),
               alignment: Alignment.center,
